@@ -498,6 +498,8 @@ public class SpringCodegen extends AbstractJavaCodegen
         additionalProperties.put("lambdaTrimWhitespace", new TrimWhitespaceLambda());
 
         additionalProperties.put("lambdaSplitString", new SplitStringLambda());
+
+        supportsAdditionalPropertiesWithComposedSchema = true;
     }
 
     @Override
