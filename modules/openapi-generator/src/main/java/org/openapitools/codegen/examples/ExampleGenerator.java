@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class ExampleGenerator {
     private final Logger LOGGER = LoggerFactory.getLogger(ExampleGenerator.class);
@@ -54,7 +55,7 @@ public class ExampleGenerator {
         // use a fixed seed to make the "random" numbers reproducible.
         this.random = new Random("ExampleGenerator".hashCode());
     }
-
+    
     public List<Map<String, String>> generateFromResponseSchema(String statusCode, Schema responseSchema, Set<String> producesInfo) {
         List<Map<String, String>> examples = generateFromResponseSchema(responseSchema, producesInfo);
         if (examples == null) {
@@ -80,16 +81,23 @@ public class ExampleGenerator {
 
         if (ModelUtils.isArraySchema(responseSchema)) { // array of schema
             ArraySchema as = (ArraySchema) responseSchema;
+            List<Map<String, String>> arrayExample;
             if (as.getItems() != null && StringUtils.isEmpty(as.getItems().get$ref())) { // array of primitive types
-                return generate((Map<String, Object>) responseSchema.getExample(),
+                arrayExample = generate((Map<String, Object>) responseSchema.getExample(),
                         new ArrayList<String>(producesInfo), as.getItems());
             } else if (as.getItems() != null && !StringUtils.isEmpty(as.getItems().get$ref())) { // array of model
-                return generate((Map<String, Object>) responseSchema.getExample(),
+                arrayExample = generate((Map<String, Object>) responseSchema.getExample(),
                         new ArrayList<String>(producesInfo), ModelUtils.getSimpleRef(as.getItems().get$ref()));
             } else {
                 // TODO log warning message as such case is not handled at the moment
                 return null;
             }
+            return arrayExample.stream().map(example -> {
+                if (example.containsKey(EXAMPLE)) {
+                    example.put(EXAMPLE, new StringBuilder("[").append(example.get(EXAMPLE)).append("]").toString());
+                }
+                return example;
+            }).collect(Collectors.toList());
         } else if (StringUtils.isEmpty(responseSchema.get$ref())) { // primitive type (e.g. integer, string)
             return generate((Map<String, Object>) responseSchema.getExample(),
                     new ArrayList<String>(producesInfo), responseSchema);
